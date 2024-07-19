@@ -1,0 +1,82 @@
+<head>
+    <title>Microprofile JWT example</title>
+    <script src="http://localhost:8080/js/keycloak.js"></script>
+
+    <script>
+        const keycloak = new Keycloak({
+            url: 'http://localhost:8080',
+            realm: 'demo',
+            clientId: 'microprofile-jwt'
+        });
+
+        var someUserInfo = function (kc) {
+            document.getElementById('someDetails').innerHTML = displaySomeUserInfo(kc);
+            document.getElementById('token').value = kc.token;
+            document.getElementById('tokenDetails').style.visibility = "visible";
+        }
+
+        var displaySomeUserInfo = function (kc) {
+            var message = "<h1>";
+            message += 'Hello ' + kc.tokenParsed.upn;
+            message += "</h1>";
+            message += "<p>";
+            message += "registered email : " + kc.idTokenParsed.email;
+            message += "<br />";
+            message += "registered user name : " + kc.idTokenParsed.preferred_username;
+            message += "</p>";
+            message += "registered user name : " + kc.tokenParsed.groups;
+            message += "</p>";
+            return message;
+        }
+
+        var displayLoggedOff = function () {
+            document.getElementById('someDetails').innerHTML = '<h2>logged off</h2>';
+        }
+
+        async function hello() {
+            try {
+                let req = new XMLHttpRequest();
+                req.onload = function () {
+                    document.getElementById("someDetails").innerHTML = "<h1>" + this.responseText + "</h1>";
+                };
+                keycloak.updateToken();
+                req.open("GET", "rest/hello/hello", true);
+                req.setRequestHeader("Authorization", "Bearer " + keycloak.token);
+                await req.send();
+            } catch (error) {
+                console.error('Error calling hello endpoint', error);
+            }
+        }
+
+        async function onLoad() {
+            try {
+                const authenticated = await keycloak.init({onLoad: 'check-sso'});
+                console.log(`User is ${authenticated ? 'authenticated' : 'not authenticated'}`);
+                if (authenticated) {
+                    someUserInfo(keycloak);
+                }
+            } catch (error) {
+                console.error('Failed to initialize adapter:', error);
+            }
+        }
+    </script>
+</head>
+
+<body onload="javascript:onLoad()">
+    <button onclick="javascript:keycloak.login();">
+        Login
+    </button>
+    <button onclick="javascript:hello();">
+        Call hello
+    </button>
+    <button onclick="javascript:keycloak.logout();">
+        Logout
+    </button>
+    <div>
+        <div id='someDetails'></div>
+    </div>
+    <div id="tokenDetails" style="visibility: hidden;">
+        <p>token (as obtained from js keycloak object):</p>
+        <textarea id="token" style="width: 100%; height: 50%;"></textarea>
+    </div>
+</body>
